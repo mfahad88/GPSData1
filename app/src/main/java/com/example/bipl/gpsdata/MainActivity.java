@@ -255,6 +255,7 @@ public class MainActivity extends AppCompatActivity {
             if(list.size()>0){
                 progressDialog.dismiss();
             }
+
             tv1.post(new Runnable() {
                 @Override
                 public void run() {
