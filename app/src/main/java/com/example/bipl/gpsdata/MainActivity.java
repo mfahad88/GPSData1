@@ -3,12 +3,15 @@ package com.example.bipl.gpsdata;
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.StrictMode;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -66,7 +69,9 @@ public class MainActivity extends AppCompatActivity {
         progressDialog=new ProgressDialog(MainActivity.this);
         progressDialog.setTitle("Fetching Weather...");
         progressDialog.setMessage("Loading...");
-
+/*        Intent intent = new Intent("android.location.GPS_ENABLED_CHANGE");
+        intent.putExtra("enabled", true);
+        sendBroadcast(intent);*/
         if (android.os.Build.VERSION.SDK_INT > 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
@@ -79,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 progressDialog.show();
-                Toast.makeText(MainActivity.this, "Button pressed..", Toast.LENGTH_SHORT).show();
+
                 if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     // TODO: Consider calling
                     //    ActivityCompat#requestPermissions
@@ -139,51 +144,6 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-    }
-
-    private List SendToUrl(String string) {
-        // TODO Auto-generated method stub
-        List list=new ArrayList();
-        try {
-            string = string.replace(" ", "%20");
-            //Log.e("String>>>>>",string);
-            String queryString = "http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml?query=" + string;
-
-            URL url = new URL(queryString);
-            // Log.e("Url-->",queryString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Content-length", "0");
-            conn.setUseCaches(false);
-            conn.setAllowUserInteraction(false);
-            conn.setConnectTimeout(100000);
-            conn.setReadTimeout(100000);
-            Log.e("Connection------->", conn.toString());
-            InputStream stream=conn.getInputStream();
-
-            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-            Document doc = dBuilder.parse(stream);
-            Element element=doc.getDocumentElement();
-            element.normalize();
-            NodeList nList = doc.getElementsByTagName("display_location");
-            Node node=nList.item(0);
-            Element element1=(Element)node;
-            Log.e("Node>>>>>>", getValue("full",element1));
-            list.add(getValue("full",element1));
-
-        } catch (ProtocolException e) {
-            e.printStackTrace();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ParserConfigurationException e) {
-            e.printStackTrace();
-        } catch (SAXException e) {
-            e.printStackTrace();
-        }
-        return list;
     }
 
     private static String getValue(String tag, Element element) {
@@ -267,4 +227,5 @@ public class MainActivity extends AppCompatActivity {
             });
         }
     }
+
 }
