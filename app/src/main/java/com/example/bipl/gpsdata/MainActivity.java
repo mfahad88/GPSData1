@@ -9,11 +9,14 @@ import android.location.LocationManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
     Button btn;
@@ -37,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         while (true) {
                             try {
-                                Thread.sleep(2000);
+                                Thread.sleep(1000);
                                 Log.e("Thread----->", String.valueOf(Thread.currentThread().getId()));
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
@@ -55,10 +58,16 @@ public class MainActivity extends AppCompatActivity {
                                         // for ActivityCompat#requestPermissions for more details.
                                         return;
                                     }
-                                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 1, new LocationListener() {
+                                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, new LocationListener() {
                                         @Override
                                         public void onLocationChanged(Location location) {
-                                            tv.setText("Latitude: " + location.getLatitude() + "\n" + "Longitude: " + location.getLongitude());
+                                            int hrs = Integer.parseInt(DateFormat.format("hh", new Date(location.getTime())).toString());
+                                            int mins = Integer.parseInt(DateFormat.format("mm", new Date(location.getTime())).toString());
+                                            int secs = Integer.parseInt(DateFormat.format("ss", new Date(location.getTime())).toString());
+                                            String med=DateFormat.format("aa", new Date(location.getTime())).toString();
+                                            String date=DateFormat.format("dd MMM, yyyy", new Date(location.getTime())).toString();
+                                            tv.setText("Latitude: " + location.getLatitude() + "\n" + "Longitude: " + location.getLongitude()+"\n"+
+                                            "Accuracy: "+location.getAccuracy()+"\n"+"Speed: "+location.getSpeed()+"\n"+"Date: "+date+"\n"+"Time: "+hrs + " : " + mins + " : " + secs+" "+med);
                                         }
 
                                         @Override
