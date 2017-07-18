@@ -5,6 +5,8 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -22,6 +24,14 @@ import android.widget.AnalogClock;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -43,13 +53,16 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     Button btn;
     TextView tv,tv1;
     LocationManager locationManager;
@@ -57,6 +70,8 @@ public class MainActivity extends AppCompatActivity {
     float myLat, myLon;
     Boolean status = false;
     ProgressDialog progressDialog;
+    SupportMapFragment mapFragment;
+    List list_address_temp=new ArrayList();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,14 +79,15 @@ public class MainActivity extends AppCompatActivity {
         btn = (Button) findViewById(R.id.button);
         tv = (TextView) findViewById(R.id.textView);
         tv1 = (TextView) findViewById(R.id.textView1);
+        mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+
         tv.setVisibility(View.INVISIBLE);
         tv1.setVisibility(View.INVISIBLE);
         progressDialog=new ProgressDialog(MainActivity.this);
         progressDialog.setTitle("Fetching Weather...");
         progressDialog.setMessage("Loading...");
-/*        Intent intent = new Intent("android.location.GPS_ENABLED_CHANGE");
-        intent.putExtra("enabled", true);
-        sendBroadcast(intent);*/
+        progressDialog.setCancelable(false);
         if (android.os.Build.VERSION.SDK_INT > 9) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
@@ -84,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 progressDialog.show();
-
+                status=false;
                 if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     // TODO: Consider calling
                     //    ActivityCompat#requestPermissions
@@ -106,10 +122,10 @@ public class MainActivity extends AppCompatActivity {
                         if ((location.getLatitude()) != 0.0 && (location.getLongitude()) != 0.0) {
                             myLat = (float) location.getLatitude();
                             myLon = (float) location.getLongitude();
+
                         }
                         tv.setText("Latitude: " + location.getLatitude() + "\n" + "Longitude: " + location.getLongitude() + "\n" +
-                                "Accuracy: " + location.getAccuracy() + "\n" + "Speed: " + location.getSpeed() + "\n" + "Date: " + date + "\n" + "Time: " + hrs + " : " + mins + " : " + secs + " " + med);
-
+                                "Accuracy: " + location.getAccuracy() + "\n" + "Speed: " + (location.getSpeed()) + "\n" + "Date: " + date + "\n" + "Time: " + hrs + " : " + mins + " : " + secs + " " + med);
 
                     }
 
@@ -134,7 +150,15 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         while (!status) {
-                            if (myLat != 0.0 && myLat != 0.0) {
+                            if (myLat != 0.0 && myLon != 0.0) {
+                                Log.e("Location>>>>> ",myLat+","+myLon);
+                                list_address_temp.add(getCompleteAddress(myLat,myLon).get(0)+", "+getCompleteAddress(myLat,myLon).get(0)+", "+getCompleteAddress(myLat,myLon).get(0));
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mapFragment.getMapAsync(MainActivity.this);
+                                    }
+                                });
                                 new locationAsync().execute(myLat+","+myLon);
                                 status = true;
                             }
@@ -152,12 +176,36 @@ public class MainActivity extends AppCompatActivity {
         return node.getNodeValue();
     }
 
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        final GoogleMap mMap = googleMap;
+        mMap.clear();
+        mMap.setOnCameraIdleListener(new GoogleMap.OnCameraIdleListener() {
+            @Override
+            public void onCameraIdle() {
+                LatLng latLng=mMap.getCameraPosition().target;
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+            }
+        });
+        if (myLat != 0.0 && myLon != 0.0) {
+            // Add a marker in Sydney, Australia, and move the camera.
+            Log.e("Inside Map>>>",mMap.toString());
+            Log.e("Location>>>>> ",myLat+","+myLon);
+            final LatLng loc = new LatLng(myLat, myLon);
+
+            mMap.addMarker(new MarkerOptions().position(loc).title(getCompleteAddress(myLat,myLon).get(0)+", "+getCompleteAddress(myLat,myLon).get(0)+", "+getCompleteAddress(myLat,myLon).get(0)).draggable(true));
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(loc));
+        }
+
+    }
+
     class locationAsync extends AsyncTask<String,List,List>{
 
 
         @Override
         protected List doInBackground(String... params) {
-            List list=new ArrayList();
+
             try {
                 String queryString = "http://api.wunderground.com/auto/wui/geo/WXCurrentObXML/index.xml?query=" + params[0];
 
@@ -187,11 +235,12 @@ public class MainActivity extends AppCompatActivity {
                 Element element_humd=(Element)node_temp;
                 Element element_wind=(Element)node_temp;
                 Element element_press=(Element)node_temp;
-                list.add(getValue("full",element_loc));
-                list.add(getValue("temperature_string",element_temp));
-                list.add(getValue("relative_humidity",element_humd));
-                list.add(getValue("wind_string",element_wind));
-                list.add(getValue("pressure_string",element_press));
+                // list.add(getValue("full",element_loc));
+
+                list_address_temp.add(getValue("temperature_string",element_temp));
+                list_address_temp.add(getValue("relative_humidity",element_humd));
+                list_address_temp.add(getValue("wind_string",element_wind));
+                list_address_temp.add(getValue("pressure_string",element_press));
                 Log.e("Node1>>>>", getValue("temperature_string",element_temp));
                 Log.e("Node>>>>>>", getValue("full",element_loc));
 
@@ -206,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (SAXException e) {
                 e.printStackTrace();
             }
-            return list;
+            return list_address_temp;
         }
 
         @Override
@@ -219,13 +268,32 @@ public class MainActivity extends AppCompatActivity {
             tv1.post(new Runnable() {
                 @Override
                 public void run() {
-                tv1.setText("\nLocation: "+String.valueOf(list.get(0))+"\nTemperature: "+String.valueOf(list.get(1))+"\nHumidity: "+list.get(2)
-                +"\nWind: "+String.valueOf(list.get(3))+"\nPressure: "+String.valueOf(list.get(4)));
+                    tv1.setText("\nLocation: "+String.valueOf(list.get(0))+"\nTemperature: "+String.valueOf(list.get(1))+"\nHumidity: "+list.get(2)
+                            +"\nWind: "+String.valueOf(list.get(3))+"\nPressure: "+String.valueOf(list.get(4)));
                     tv.setVisibility(View.VISIBLE);
                     tv1.setVisibility(View.VISIBLE);
                 }
             });
         }
+    }
+
+    public List<String> getCompleteAddress(float latitude, float longitude){
+
+        List<String> map = null;
+        try {   
+            map=new ArrayList<String>();
+            Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+            List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
+            map.add(addresses.get(0).getAddressLine(0).toString());
+            map.add(addresses.get(0).getLocality().toString());
+            map.add(addresses.get(0).getCountryName().toString());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.print(map.get(0)+", "+map.get(0)+", "+map.get(0));
+
+        return map;
     }
 
 }
